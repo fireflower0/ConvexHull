@@ -13,6 +13,7 @@ struct _CvxField{
     GtkWidget* canvas;
 
     CvxNode*   node;
+    gboolean   in_operation;
 };
 
 CvxField* cvx_field_new(GtkWindow* window, gchar* title, guint width, guint height);

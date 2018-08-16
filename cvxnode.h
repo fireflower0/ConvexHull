@@ -21,6 +21,7 @@ struct _CvxNode {
 
 CvxNode* cvx_node_new(CvxField* field, gint x, gint y);
 void     cvx_node_render(CvxNode* node, cairo_t* cr);
+gboolean cvx_node_is_inside_p(CvxNode* node, gint x, gint y);
 
 G_END_DECLS
 

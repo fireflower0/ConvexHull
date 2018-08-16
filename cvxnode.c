@@ -10,7 +10,7 @@ CvxNode* cvx_node_new(CvxField* field, gint x, gint y){
     retval->field = field;
     retval->x = x;
     retval->y = y;
-    retval->width = CVX_NODE_DEFAULT_WIDTH;
+    retval->width  = CVX_NODE_DEFAULT_WIDTH;
     retval->height = CVX_NODE_DEFAULT_HEIGHT;
 
     return retval;
@@ -34,4 +34,14 @@ void cvx_node_render(CvxNode* node, cairo_t* cr){
     /* 黒色で、辺を描画 */
     cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
     cairo_stroke(cr);
+}
+
+/* 点がノード内に含まれているか判定する */
+gboolean cvx_node_is_inside_p(CvxNode* node, gint x, gint y){
+    double ulx = node->x - node->width  / 2.0;
+    double uly = node->y - node->height / 2.0;
+    double lrx = node->x + node->width  / 2.0;
+    double lry = node->y + node->height / 2.0;
+
+    return ((ulx < x) && (x < lrx) && (uly < y) && (y < lry));
 }
