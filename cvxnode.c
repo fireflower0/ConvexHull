@@ -45,3 +45,15 @@ gboolean cvx_node_is_inside_p(CvxNode* node, gint x, gint y){
 
     return ((ulx < x) && (x < lrx) && (uly < y) && (y < lry));
 }
+
+/* 移動先位置の計算 */
+void cvx_node_move_to(CvxNode* node, gint x, gint y){
+    node->x = x + node->dx;
+    node->y = y + node->dy;
+}
+
+/* ノードを掴んだ座標とノード中心座標の差分を記録 */
+void cvx_node_set_difference(CvxNode* node, gint x, gint y){
+    node->dx = node->x - x;
+    node->dy = node->y - y;
+}
