@@ -9,21 +9,26 @@ static gboolean cvx_field_expose_event(GtkWidget* widget, GdkEventExpose* event,
     gdk_window_clear(drawable);
 
     cr = gdk_cairo_create(drawable);
-    cvx_node_render(field->node, cr);
+    cvx_node_list_render(field->node_list, cr);
     cairo_destroy(cr);
 
     return FALSE;
 }
 
+/* 操作中か否かを判定 */
+static gboolean cvx_field_is_in_operation_p(CvxField* field){
+    return (field->active_node != NULL);
+}
+
 /* ノード移動操作を開始 */
-static void cvx_field_start_operation(CvxField* field, gint x, gint y){
-    field->in_operation = TRUE;
-    cvx_node_set_difference(field->node, x, y);
+static void cvx_field_start_operation(CvxField* field, gint x, gint y, CvxNode* node){
+    field->active_node = node;
+    cvx_node_set_difference(field->active_node, x, y);
 }
 
 /* ノード移動操作を終了 */
 static void cvx_field_finish_operation(CvxField* field, gint x, gint y){
-    field->in_operation = FALSE;
+    field->active_node = NULL;
 }
 
 static void cvx_field_set_cursor(CvxField* field, gint x, gint y){
@@ -32,11 +37,11 @@ static void cvx_field_set_cursor(CvxField* field, gint x, gint y){
     GdkDisplay*   display;
     GdkCursor*    cursor;
 
-    if(field->in_operation){
+    if(cvx_field_is_in_operation_p(field)){
         cursor_type = GDK_FLEUR;
     }else{
-        is_node = cvx_node_is_inside_p(field->node, x, y);
-        cursor_type = is_node ? GDK_HAND1 : GDK_ARROW;
+        CvxNode* node = cvx_node_list_pick_node(field->node_list, x, y);
+        cursor_type = (node != NULL) ? GDK_HAND1 : GDK_ARROW;
     }
 
     display = gdk_display_get_default();
@@ -48,9 +53,10 @@ static void cvx_field_set_cursor(CvxField* field, gint x, gint y){
 static gboolean cvx_field_button_pressed(GtkWidget* widget, GdkEventButton* event, gpointer user_data){
     gint      x = event->x, y = event->y;
     CvxField* field = (CvxField*)user_data;
+    CvxNode*  node = cvx_node_list_pick_node(field->node_list, x, y);
 
-    if(cvx_node_is_inside_p(field->node, x, y)){
-        cvx_field_start_operation(field, x, y);
+    if(node != NULL){
+        cvx_field_start_operation(field, x, y, node);
         cvx_field_set_cursor(field, x, y);
     }
 
@@ -79,8 +85,8 @@ static gboolean cvx_field_mouse_move(GtkWidget* widget, GdkEventMotion* event, g
         cvx_field_finish_operation(field, x, y);
     }
 
-    if(field->in_operation){
-        cvx_node_move_to(field->node, x, y);
+    if(cvx_field_is_in_operation_p(field)){
+        cvx_node_move_to(field->active_node, x, y);
         cvx_field_expose_event(widget, NULL, user_data);
     }
 
@@ -124,9 +130,9 @@ CvxField* cvx_field_new(GtkWindow* window, gchar* title, guint width, guint heig
     retvar->canvas = canvas;
 
     /* ノードインスタンスを生成 */
-    retvar->node = cvx_node_new(retvar, width / 2, height / 2);
+    retvar->node_list = cvx_node_list_new(retvar, width, height);
     
-    retvar->in_operation = FALSE;
-
+    retvar->active_node = NULL;
+    
     return retvar;
 }

@@ -7,13 +7,14 @@ G_BEGIN_DECLS
 typedef struct _CvxField CvxField;
 
 #include "cvxnode.h"
+#include "cvxnodelist.h"
 
 struct _CvxField{
-    GtkWindow* window;
-    GtkWidget* canvas;
+    GtkWindow*   window;
+    GtkWidget*   canvas;
 
-    CvxNode*   node;
-    gboolean   in_operation;
+    CvxNodeList* node_list;
+    CvxNode*     active_node;
 };
 
 CvxField* cvx_field_new(GtkWindow* window, gchar* title, guint width, guint height);
