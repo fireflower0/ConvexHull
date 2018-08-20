@@ -9,6 +9,7 @@ static gboolean cvx_field_expose_event(GtkWidget* widget, GdkEventExpose* event,
     gdk_window_clear(drawable);
 
     cr = gdk_cairo_create(drawable);
+    cvx_polygon_render(field->polygon, cr);      /* 多角形を描画 */
     cvx_node_list_render(field->node_list, cr);
     cairo_destroy(cr);
 
@@ -131,6 +132,9 @@ CvxField* cvx_field_new(GtkWindow* window, gchar* title, guint width, guint heig
 
     /* ノードインスタンスを生成 */
     retvar->node_list = cvx_node_list_new(retvar, width, height);
+
+    /* 多角形の生成処理 */
+    retvar->polygon   = cvx_polygon_new(retvar, retvar->node_list->nodes);
     
     retvar->active_node = NULL;
     
