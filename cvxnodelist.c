@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "cvxnodelist.h"
+#include "cvxedgesorter.h"
 
 /* ノードをランダムな位置に生成 */
 static GList* cvx_node_list_create_random_nodes(CvxField* field, guint num, guint max_x, guint max_y){
@@ -19,6 +20,8 @@ static GList* cvx_node_list_create_random_nodes(CvxField* field, guint num, guin
         if(node == NULL) return NULL;
         list = g_list_append(list, node);
     }
+
+    list = cvx_edge_sorter_sort_list(list);
     
     return list;
 }
