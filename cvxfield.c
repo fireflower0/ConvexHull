@@ -96,10 +96,54 @@ static gboolean cvx_field_mouse_move(GtkWidget* widget, GdkEventMotion* event, g
     return FALSE;
 }
 
+/* キーの値に関する定義をインクルード */
+#include <gdk/gdkkeysyms.h>
+
+/* キー押下時のイベント */
+static gboolean cvx_field_key_pressed(GtkWidget* widget, GdkEventKey* event, gpointer user_data){
+    if((event->state & GDK_CONTROL_MASK) && (event->keyval == GDK_q)){
+        /* Ctrl + q が押下されたら終了 */
+        gtk_main_quit();
+    }
+    return FALSE;
+}
+
+/* イベント設定処理 */
+static void cvx_field_set_events_on_canvas(CvxField* field, GtkWidget* canvas){
+    /* ウィンドウが描画されるべきタイミング(※)で発生する expose-event で、 */
+    /* コールバック関数 cvx_field_expose_event() を結びつける               */
+    g_signal_connect(G_OBJECT(canvas), "expose-event", G_CALLBACK(cvx_field_expose_event), field);
+
+    gtk_widget_set_events(canvas, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK);
+
+    /* マウス操作に関するシグナル設定 */
+    g_signal_connect(G_OBJECT(canvas), "motion-notify-event",  G_CALLBACK(cvx_field_mouse_move),      field);
+    g_signal_connect(G_OBJECT(canvas), "button-press-event",   G_CALLBACK(cvx_field_button_pressed),  field);
+    g_signal_connect(G_OBJECT(canvas), "button-release-event", G_CALLBACK(cvx_field_button_released), field);
+
+    /* キー押下時のシグナル設定 */
+    g_signal_connect(G_OBJECT(field->window), "key-press-event", G_CALLBACK(cvx_field_key_pressed), field);
+}
+
+/* ウィンドウへパッキングしてウィジェットを並べる */
+static void cvx_field_pack_widget(GtkWindow* window, GtkWidget* canvas, GtkWidget* controller){
+    /* それぞれのウィジェットを縦に並べるパッキングボックスGtkBoxを利用 */
+    GtkWidget* vbox = gtk_vbox_new(FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(window), vbox);
+
+    /* 多角形を描画するキャンバス */
+    gtk_box_pack_start(GTK_BOX(vbox), canvas, TRUE, TRUE, 0);
+
+    /* コントローラ */
+    gtk_box_pack_start(GTK_BOX(vbox), controller, FALSE, FALSE, 0);
+}
+
 /* 描画領域の設定 */
 CvxField* cvx_field_new(GtkWindow* window, gchar* title, guint width, guint height){
-    CvxField*  retvar;
-    GtkWidget* canvas;
+    CvxField*     retvar;
+    CvxAlgorithm* algorithm;
+    GtkWidget*    canvas;
+    GtkWidget*    controller;
 
     /* メモリ領域確保 */
     retvar = (CvxField*)malloc(sizeof(CvxField));
@@ -107,28 +151,29 @@ CvxField* cvx_field_new(GtkWindow* window, gchar* title, guint width, guint heig
 
     /* ウィンドウのタイトルを設定 */
     gtk_window_set_title(window, title);
-    
-    /* ウィンドウの幅・高さを設定 */
-    gtk_widget_set_size_request(GTK_WIDGET(window), width, height);
-    
     retvar->window = window;
 
     /* 描画領域インスタンスを生成 */
     canvas = gtk_drawing_area_new();
+    
+    /* ウィンドウの幅・高さを設定 */
+    gtk_widget_set_size_request(GTK_WIDGET(window), width, height);
 
-    /* 描画領域をウィンドウに追加 */
-    gtk_container_add(GTK_CONTAINER(window), canvas);
-
-    /* ウィンドウが描画されるべきタイミング(※)で発生する expose-event で、 */
-    /* コールバック関数 cvx_field_expose_event() を結びつける               */
-    g_signal_connect(G_OBJECT(canvas), "expose-event", G_CALLBACK(cvx_field_expose_event), retvar);
-
-    gtk_widget_set_events(canvas, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK);
-    g_signal_connect(G_OBJECT(canvas), "motion-notify-event",  G_CALLBACK(cvx_field_mouse_move),      retvar);
-    g_signal_connect(G_OBJECT(canvas), "button-press-event",   G_CALLBACK(cvx_field_button_pressed),  retvar);
-    g_signal_connect(G_OBJECT(canvas), "button-release-event", G_CALLBACK(cvx_field_button_released), retvar);
+    /* イベント設定 */
+    cvx_field_set_events_on_canvas(retvar, canvas);
     
     retvar->canvas = canvas;
+
+    /* アルゴリズムのインスタンスを生成 */
+    algorithm = cvx_algorithm_new(retvar, sizeof(CvxAlgorithm));
+
+    /* 各アルゴリズムによって提示されるコントローラへのポインタを取得 */
+    controller = cvx_algorithm_get_controller(algorithm);
+
+    /* ウィジェット配置 */
+    cvx_field_pack_widget(window, canvas, controller);
+    
+    retvar->algorithm = algorithm;
 
     /* ノードインスタンスを生成 */
     retvar->node_list = cvx_node_list_new(retvar, width, height);
@@ -139,4 +184,8 @@ CvxField* cvx_field_new(GtkWindow* window, gchar* title, guint width, guint heig
     retvar->active_node = NULL;
     
     return retvar;
+}
+
+void cvx_field_repaint(CvxField* field){
+    cvx_field_expose_event(field->canvas, NULL, field);
 }

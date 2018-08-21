@@ -9,17 +9,21 @@ typedef struct _CvxField CvxField;
 #include "cvxnode.h"
 #include "cvxnodelist.h"
 #include "cvxpolygon.h"
+#include "cvxalgorithm.h"
 
 struct _CvxField{
-    GtkWindow*   window;
-    GtkWidget*   canvas;
+    GtkWindow*    window;
+    GtkWidget*    canvas;
 
-    CvxNodeList* node_list;
-    CvxNode*     active_node;
-    CvxPolygon*  polygon;
+    CvxNodeList*  node_list;
+    CvxNode*      active_node;
+    CvxPolygon*   polygon;
+
+    CvxAlgorithm* algorithm;
 };
 
 CvxField* cvx_field_new(GtkWindow* window, gchar* title, guint width, guint height);
+void      cvx_field_repaint(CvxField* field);
 
 G_END_DECLS
 
