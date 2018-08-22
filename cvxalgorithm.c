@@ -5,7 +5,7 @@ CvxAlgorithm* cvx_algorithm_new(CvxField* field, size_t objsize){
     if(retvar == NULL) return NULL;
 
     retvar->field = field;
-    retvar->controller = gtk_button_new_with_label(" Click Me ! ");
+    retvar->controller = NULL;
 
     return retvar;
 }

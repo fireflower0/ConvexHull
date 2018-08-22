@@ -1,8 +1,8 @@
 #include "cvxfield.h"
 
 #define CVX_MAIN_TITLE   "main_window"
-#define CVX_MAIN_WIDTH   400
-#define CVX_MAIN_HEIGHT  300
+#define CVX_MAIN_WIDTH   800
+#define CVX_MAIN_HEIGHT  600
 #define CVX_MAIN_GBCOLOR "White"
 
 int main(int argc, char* argv[]){

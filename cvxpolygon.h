@@ -17,6 +17,7 @@ struct _CvxPolygon {
 
 CvxPolygon* cvx_polygon_new(CvxField* field, GList* nodes);
 void        cvx_polygon_render(CvxPolygon* polygon, cairo_t* cr);
+void        cvx_polygon_set_shape(CvxPolygon* polygon, GList* nodes);
 
 G_END_DECLS
 

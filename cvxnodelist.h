@@ -13,7 +13,7 @@ struct _CvxNodeList {
     GList*    nodes;
 };
 
-#define CVX_NODE_LIST_NODES_NUM 10
+#define CVX_NODE_LIST_NODES_NUM 300
 
 CvxNodeList* cvx_node_list_new(CvxField* field, guint max_x, guint max_y);
 CvxNode*     cvx_node_list_pick_node(CvxNodeList* node_set, gint x, gint y);

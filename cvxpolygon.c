@@ -9,7 +9,7 @@ CvxPolygon* cvx_polygon_new(CvxField* field, GList* nodes){
     if(retvar == NULL) return NULL;
 
     retvar->field = field;
-    retvar->nodes = field->node_list->nodes;
+    retvar->nodes = g_list_copy(field->node_list->nodes);
 
     return retvar;
 }
@@ -32,4 +32,11 @@ void cvx_polygon_render(CvxPolygon* polygon, cairo_t* cr){
     cairo_stroke_preserve(cr);
     cairo_set_source_rgb(cr, 1.0, 1.0, 0.5);
     cairo_fill(cr);
+}
+
+void cvx_polygon_set_shape(CvxPolygon* polygon, GList* nodes){
+    if(polygon->nodes != NULL){
+        g_list_free(polygon->nodes);
+    }
+    polygon->nodes = nodes;
 }

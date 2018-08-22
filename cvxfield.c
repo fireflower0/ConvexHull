@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "cvxfield.h"
+#include "cvxconvexhull.h"
 
 static gboolean cvx_field_expose_event(GtkWidget* widget, GdkEventExpose* event, gpointer user_data){
     CvxField*  field = (CvxField*)user_data;
@@ -165,7 +166,7 @@ CvxField* cvx_field_new(GtkWindow* window, gchar* title, guint width, guint heig
     retvar->canvas = canvas;
 
     /* アルゴリズムのインスタンスを生成 */
-    algorithm = cvx_algorithm_new(retvar, sizeof(CvxAlgorithm));
+    algorithm = cvx_convex_hull_new(retvar);
 
     /* 各アルゴリズムによって提示されるコントローラへのポインタを取得 */
     controller = cvx_algorithm_get_controller(algorithm);
