@@ -3,7 +3,29 @@
 #include "cvxutility.h"
 
 static double   gx, gy;  /* 重心の座標 */
-static CvxNode* node0;   /* 基準とするノードへのポインタ */
+
+void cvx_edge_sorter_find_nodes(GList* list, CvxNode* target, GList** prev, GList** next){
+    GList* p = g_list_last(list);
+    GList* n = g_list_first(list);
+    GList* list_ptr = list;
+
+    double theta = cvx_utility_calc_angle(1.0, 0.0, target->x - gx, target->y - gy);
+    double phi;
+
+    while(list_ptr){
+        CvxNode* node = (CvxNode*)list_ptr->data;
+        phi = cvx_utility_calc_angle(1.0, 0.0, node->x - gx, node->y - gy);
+        if(phi < theta) break;
+        p = list_ptr;
+        n = list_ptr = g_list_next(list_ptr);
+    }
+
+    if(n == NULL){
+        n = g_list_first(list);
+    }
+    *prev = p;
+    *next = n;
+}
 
 /* 全てのノードを走査し、重心座標を計算 */
 static void cvx_edge_sorter_find_gravity_center(GList* list){
@@ -27,12 +49,12 @@ static void cvx_edge_sorter_find_gravity_center(GList* list){
 static double cvx_edge_sorter_calc_angle(CvxNode* node1){
     double vec0_x, vec0_y, vec1_x, vec1_y;
 
-    vec0_x = node0->x - gx;
-    vec0_y = node0->y - gy;
+    vec0_x = 1.0;
+    vec0_y = 0.0;
     vec1_x = node1->x - gx;
     vec1_y = node1->y - gy;
 
-    return ((node0 == node1) ? 0.0 : cvx_utility_calc_angle(vec0_x, vec0_y, vec1_x, vec1_y));
+    return ((vec1_x * vec1_x + vec1_y * vec1_y == 0.0) ? 0.0 : cvx_utility_calc_angle(vec0_x, vec0_y, vec1_x, vec1_y));
 }
 
 /* 基準線に対する各ノードの角度を計算 */
@@ -59,9 +81,8 @@ CvxNode* cvx_edge_sorter_find_right_end(GList* list){
         }
         list = g_list_next(list);
     }
-    node0 = tmp_node;
 
-    return node0;
+    return tmp_node;
 }
 
 /* 引数で与えたリストが持つノードを並び替えた結果を返す */

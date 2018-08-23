@@ -5,6 +5,7 @@
 
 G_BEGIN_DECLS
 
+void     cvx_edge_sorter_find_nodes(GList* list, CvxNode* target, GList** prev, GList** next);
 CvxNode* cvx_edge_sorter_find_right_end(GList* list);
 GList*   cvx_edge_sorter_sort_list(GList* list);
 

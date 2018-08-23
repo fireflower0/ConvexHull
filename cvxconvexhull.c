@@ -3,56 +3,103 @@
 #include "cvxedgesorter.h"
 #include "cvxutility.h"
 
-/* 最小の偏角を持つ点を探す */
-static CvxNode* cvx_convex_find_least_angle(CvxConvexHull* convex, GList* work_list, CvxNode* node){
-    CvxNode* result;
-    double   max_angle = 2 * M_PI;  // maximum angle
+/* X座標でソートするための判断基準 */
+static gint cvx_convex_hull_compare_func_x(gconstpointer a, gconstpointer b){
+    CvxNode* node_a = (CvxNode*)a;
+    CvxNode* node_b = (CvxNode*)b;
 
-    while(work_list != NULL){
-        CvxNode* target = (CvxNode*)work_list->data;
-        double vec0_x = target->x - node->x;
-        double vec0_y = target->y - node->y;
-        double vec1_x = convex->x;
-        double vec1_y = convex->y;
-        double angle = cvx_utility_calc_angle(vec0_x, vec0_y, vec1_x, vec1_y);
+    return ((node_a->x > node_b->x) ? 1 : -1);
+}
 
-        if(angle < max_angle){
-            max_angle = angle;
-            result = target;
-        }
-        work_list = g_list_next(work_list);
+/* 外積の計算を行い、接点となるノードチェックを行う */
+static gboolean cvx_convex_hull_check(CvxNode* node0, CvxNode* node1, CvxNode* node2, CvxNode* node3){
+    double vec0_x = node0->x - node1->x, vec0_y = node0->y - node1->y;
+    double vec1_x = node2->x - node1->x, vec1_y = node2->y - node1->y;
+    double vec2_x = node0->x - node2->x, vec2_y = node0->y - node2->y;
+    double vec3_x = node3->x - node2->x, vec3_y = node3->y - node2->y;
+    double cross_prod1 = vec0_x * vec1_y - vec0_y * vec1_x;
+    double cross_prod2 = vec2_x * vec3_y - vec2_y * vec3_x;
+
+    return (cross_prod1 * cross_prod2 <= 0);
+}
+
+/* 凸包内部の点となるノードを削除 */
+/* 着目している追加ノードから凸包候補に接線を引けるノードまでを探索し、 */
+/* その時点で凸包候補内部に含まれてしまう点を削除する処理               */
+static GList* cvx_convex_hull_remove_nodes(GList* convex_nodes, CvxNode* target, GList* prev, GList* next){
+    GList* nnext;
+    GList* pprev;
+
+    /* ノードを半時計回りに探索し、接点となるノードを探す */
+    for(;;){
+        nnext = g_list_next(next);
+        if(nnext == NULL) nnext = convex_nodes;
+        /* 接点となるノードの判定 */
+        if(cvx_convex_hull_check(target,
+                                 (CvxNode*)prev->data,
+                                 (CvxNode*)next->data,
+                                 (CvxNode*)nnext->data))
+            break;
+        convex_nodes = g_list_remove(convex_nodes, next->data);
+        next = nnext;
     }
-    
-    return result;
+
+    /* ノードを時計回りに探索し、下側から接する点を探す */
+    for(;;){
+        pprev = g_list_previous(prev);
+        if(pprev == NULL) pprev = g_list_last(convex_nodes);
+        /* 接点となるノードの判定 */
+        if(cvx_convex_hull_check(target,
+                                 (CvxNode*)next->data,
+                                 (CvxNode*)prev->data,
+                                 (CvxNode*)pprev->data))
+            break;
+        convex_nodes = g_list_remove(convex_nodes, prev->data);
+        prev = pprev;
+    }
+
+    return convex_nodes;
 }
 
 /* 実際の計算処理を行う */
 static GList* cvx_convex_hull_calc(CvxConvexHull* convex, GList* all_nodes){
+    int      i;
     GList*   work_list = g_list_copy(all_nodes); /* 作業用リスト、初期値は全てのノードを記録したリストのコピー */
-    CvxNode* start_node = convex->start_node;
-    CvxNode* node = start_node;
-    CvxNode* next = NULL;                        /* 包装法で次に凸包の頂点として追加していくノードを管理する */
+    GList*   list_ptr;
     GList*   convex_nodes = NULL;
 
-    /* 偏角計算の基準となるベクトル、すなわち包装法で途中まで求まった先端の辺を示す */
-    convex->x = 1.0;
-    convex->y = 0.0;
+    /* 全てのノードをX座標でソート */
+    list_ptr = work_list = g_list_sort(work_list, cvx_convex_hull_compare_func_x);
 
-    /* 最初のノードに戻るまで処理を行う */
-    while(next != start_node){
-        next = cvx_convex_find_least_angle(convex, work_list, node);
-        
-        /* 対象となるノードが探索されたら凸包頂点のリストへ追加 */
-        convex_nodes = g_list_append(convex_nodes, next);
-
-        /* 作業用リストからは除外 */
-        work_list = g_list_remove(work_list, next);
-
-        convex->x = next->x - node->x;
-        convex->y = next->y - node->y;
-        node = next;
+    /* 最初の三角形を定義 */
+    for(i = 0; i < 3; i++){
+        /* 最初の3点を、凸包の候補として、convex_nodesリストに格納 */
+        CvxNode* node = (CvxNode*)list_ptr->data;
+        convex_nodes = g_list_append(convex_nodes, node);
+        list_ptr = g_list_next(list_ptr);
     }
 
+    /* 残りのノードに対して凸包に含まれるか否かの判定を行う */
+    while(list_ptr != NULL){
+        CvxNode* target = (CvxNode*)list_ptr->data;
+        GList* prev;
+        GList* next;
+
+        /* 凸包の候補を半時計回りにソート */
+        convex_nodes = cvx_edge_sorter_sort_list(convex_nodes);
+
+        /* 着目するノードを挟むノードを抽出 */
+        cvx_edge_sorter_find_nodes(convex_nodes, target, &prev, &next);
+
+        /* 凸包内部の点となるノードを削除 */
+        convex_nodes = cvx_convex_hull_remove_nodes(convex_nodes, target, prev, next);
+
+        /* 対象のノードを追加 */
+        convex_nodes = g_list_append(convex_nodes, target);
+
+        list_ptr = g_list_next(list_ptr);
+    }
+    
     g_list_free(work_list);
 
     return convex_nodes;
@@ -66,7 +113,6 @@ static void cvx_convex_hull_calc_start(GtkWidget* button, gpointer user_data){
     CvxPolygon*    polygon   = field->polygon;
     GList*         all_nodes = field->node_list->nodes;
 
-    convex->start_node   = cvx_edge_sorter_find_right_end(all_nodes);
     convex->convex_nodes = cvx_convex_hull_calc(convex, all_nodes);
     cvx_polygon_set_shape(polygon, convex->convex_nodes);
 

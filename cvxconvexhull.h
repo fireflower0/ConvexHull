@@ -19,7 +19,7 @@ struct _CvxConvexHull {
     double       x, y;
 };
 
-#define CVX_CONVEX_HULL_MESSAGE      "凸法 (包装法)"
+#define CVX_CONVEX_HULL_MESSAGE      "凸法 (逐次構成法)"
 #define CVX_CONVEX_HULL_BUTTON_LABEL " 計算 "
 
 CvxAlgorithm* cvx_convex_hull_new(CvxField* field);
